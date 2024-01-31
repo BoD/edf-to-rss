@@ -45,6 +45,7 @@ class Scraping(
   private val storageStateFolder: String,
   private val email: String,
   private val password: String,
+  private val contractId: String?,
 ) {
   var jsonConsumptionsResult: JsonConsumptionsResult? = null
 
@@ -79,9 +80,17 @@ class Scraping(
           page.getByLabel("Mot de passe", Page.GetByLabelOptions().setExact(true)).fill(password)
           page.getByLabel("Suivant - Me connecter à mon").click()
 
-          page.getByLabel("Accéder à la vue HEURE").click();
+          contractId?.let {
+            page.locator("[id=\"\\$it\"]").click()
+          }
+
+          page.getByLabel("Accéder à la vue HEURE").click()
           page.waitForLoadState(LoadState.NETWORKIDLE)
         }
+    }
+
+    if (jsonConsumptionsResult == null || jsonConsumptionsResult?.consumptions?.sumOf { it.energyMeter.total } == 0.0) {
+      throw Exception("Scraping didn't work")
     }
   }
 
@@ -104,11 +113,11 @@ class Scraping(
           logd("Scraping done")
         }
 
-        // Wait until tomorrow, at 10am
+        // Wait until tomorrow, at 11am
         val now = LocalDateTime.now()
-        val tomorrow = now.plusDays(1).withHour(10).withMinute(0).withSecond(0)
+        val tomorrow = now.plusDays(1).withHour(11).withMinute(0).withSecond(0)
         val secondsToWait = now.until(tomorrow, ChronoUnit.SECONDS)
-        logd("Waiting $secondsToWait seconds until tomorrow at 10am")
+        logd("Waiting $secondsToWait seconds until tomorrow at 11am")
         Thread.sleep(secondsToWait * 1000)
       }
     }

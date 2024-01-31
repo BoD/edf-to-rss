@@ -21,5 +21,6 @@ docker run \
 -v <path to directory containing your storage-state.json file>:/storage-state \
 -e EDF_EMAIL=<your EDF email> \
 -e EDF_PASSWORD=<your EDF password> \
+-e EDF_CONTRACT_ID=<your EDF contract, only if you have several, e.g. 11 222222222-333333333333> \
 bodlulu/edf-to-rss
 ```

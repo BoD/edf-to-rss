@@ -36,9 +36,10 @@ dependencies {
   implementation(Ktor.server.core)
   implementation(Ktor.server.cio)
   implementation(Ktor.server.statusPages)
+  implementation(Ktor.server.callLogging)
 
-  // Xml
-  implementation("org.redundent:kotlin-xml-builder:_")
+  // RSS
+  implementation("com.rometools:rome:_")
 
   // Tests
   testImplementation(Kotlin.test)

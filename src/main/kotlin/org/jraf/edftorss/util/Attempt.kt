@@ -33,7 +33,7 @@ fun <T> attempt(times: Int, block: () -> T): T {
     } catch (e: Exception) {
       if (attempt <= times) {
         logw(e, "Attempt #$attempt failed, retrying")
-        Thread.sleep(1000L + attempt * 1000L)
+        Thread.sleep(5000L + attempt * 5000L)
         attempt++
       } else {
         throw e
