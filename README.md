@@ -19,6 +19,7 @@ docker run \
 -p <PORT TO LISTEN TO>:8080 \
 -v <path to directory containing playwright browser binaries>:/playwright-browsers \
 -v <path to directory containing your storage-state.json file>:/storage-state \
+-e TZ=`cat /etc/timezone` \
 -e EDF_EMAIL=<your EDF email> \
 -e EDF_PASSWORD=<your EDF password> \
 -e EDF_CONTRACT_ID=<your EDF contract, only if you have several, e.g. 11 222222222-333333333333> \

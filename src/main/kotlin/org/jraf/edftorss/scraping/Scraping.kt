@@ -113,11 +113,11 @@ class Scraping(
           logd("Scraping done")
         }
 
-        // Wait until tomorrow, at 11am
+        // Wait until tomorrow, at 10:30am
         val now = LocalDateTime.now()
-        val tomorrow = now.plusDays(1).withHour(11).withMinute(0).withSecond(0)
+        val tomorrow = now.plusDays(1).withHour(10).withMinute(30).withSecond(0)
         val secondsToWait = now.until(tomorrow, ChronoUnit.SECONDS)
-        logd("Waiting $secondsToWait seconds until tomorrow at 11am")
+        logd("Waiting $secondsToWait seconds until tomorrow at 10:30am")
         Thread.sleep(secondsToWait * 1000)
       }
     }

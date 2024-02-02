@@ -32,10 +32,12 @@ fun <T> attempt(times: Int, block: () -> T): T {
       return block()
     } catch (e: Exception) {
       if (attempt <= times) {
-        logw(e, "Attempt #$attempt failed, retrying")
-        Thread.sleep(5000L + attempt * 5000L)
+        val delayMs = 10_000L + (attempt - 1) * 60_000L
+        logw(e, "Attempt #$attempt failed, retrying in $delayMs ms...")
+        Thread.sleep(delayMs)
         attempt++
       } else {
+        logw(e, "Attempt #$attempt failed, giving up")
         throw e
       }
     }

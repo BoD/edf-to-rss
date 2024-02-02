@@ -43,7 +43,6 @@ import io.ktor.server.plugins.callloging.CallLogging
 import io.ktor.server.plugins.origin
 import io.ktor.server.request.host
 import io.ktor.server.request.httpMethod
-import io.ktor.server.request.path
 import io.ktor.server.request.port
 import io.ktor.server.request.uri
 import io.ktor.server.response.respondText
@@ -117,10 +116,9 @@ class Server(private val scraping: Scraping) {
     logd("graphUrl: $graphUrl")
     val sumFormat = "%.${2}f"
     return """
-      <b>$title</b><br>
       <ul>
-        <li>Energy: ${sumFormat.format(energyTotal)} kWh</li>
-        <li>Cost: ${sumFormat.format(costTotal)} €</li>
+        <li>Energy: <b>${sumFormat.format(energyTotal)} kWh</b></li>
+        <li>Cost: <b>${sumFormat.format(costTotal)} €</b></li>
       </ul>
       <img src="${graphUrl.replace("&", "&amp;")}">
       """.trimIndent()
