@@ -129,7 +129,7 @@ class Server(private val scraping: Scraping) {
       .apply {
         parameters.append("cht", "bvg")
         parameters.append("chtt", "$title (kWh)")
-        parameters.append("chs", "1000x200")
+        parameters.append("chs", "1000x300")
         parameters.append("chxt", "x,y")
         parameters.append("chxs", "0,000000,14")
         parameters.append("chbh", "a")
@@ -142,7 +142,8 @@ class Server(private val scraping: Scraping) {
             startTime.format(AXIS_HOUR_FORMAT)
           }
         }.joinToString("|"))
-        parameters.append("chd", "t:" + jsonConsumptionsResult.consumptions.map { it.energyMeter.total }.joinToString(","))
+        parameters.append("chd", "t:" + jsonConsumptionsResult.consumptions.joinToString(",") { it.energyMeter.total.toString() })
+        parameters.append("chco", jsonConsumptionsResult.consumptions.joinToString("|") { if (it.isOffPeakHours()) "59a0eb" else "005bbb" })
       }
       .buildString()
   }

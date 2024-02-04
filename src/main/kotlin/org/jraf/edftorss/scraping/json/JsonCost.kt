@@ -30,5 +30,5 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class JsonCost(
   val total: Double,
-  val standingCharge: Double,
+  val byTariffHeading: Map<String, Double>,
 )

@@ -39,4 +39,6 @@ data class JsonConsumption(
   val nature: String,
   val aggregated: Boolean,
   val usingLoadCurve: Boolean,
-)
+) {
+  fun isOffPeakHours() = cost.byTariffHeading.contains("HC")
+}
