@@ -108,8 +108,8 @@ class Scraping(
       while (true) {
         attempt(3) {
           logd("Starting scraping")
-          fakeScrape()
-//          scrape(headless = true)
+//          fakeScrape()
+          scrape(headless = true)
           logd("Scraping done")
         }
 
