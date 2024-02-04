@@ -77,8 +77,18 @@ class Server(private val scraping: Scraping) {
         val status = call.response.status()
         val httpMethod = call.request.httpMethod.value
         val host = call.request.origin.remoteHost
-        val userAgent = call.request.headers["User-Agent"]
-        "Status: $status, Method: $httpMethod, Host: $host, User agent: $userAgent"
+        val headers = call.request.headers
+        """
+          |
+          |-----------------------------------
+          |Host: $host
+          |Method: $httpMethod
+          |Headers:
+          ${headers.entries().joinToString("\n") { "|- ${it.key}: ${it.value.joinToString()}" }}
+          |Status: $status
+          |-----------------------------------
+          |
+        """.trimMargin()
       }
     }
 
