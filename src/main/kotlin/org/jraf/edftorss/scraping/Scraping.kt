@@ -66,25 +66,34 @@ class Scraping(
           val page = browserContext.newPage()
 
           page.route({ url -> url.contains("consumptions/load-curve") }) { route ->
+            logd("Got request to json payload")
             val response: APIResponse = route.fetch()
             val body = response.text()
             updateJson(body)
             route.fulfill(Route.FulfillOptions().setBody(body))
           }
+          logd("Navigating to EDF website")
           page.navigate("https://equilibre.edf.fr/comprendre")
+
+          logd("Entering email")
           page.getByLabel("E-mail").click()
           page.getByLabel("E-mail").fill(email)
           page.getByLabel("Suivant - étape suivante de").click()
 
+          logd("Entering password")
           page.getByLabel("Mot de passe", Page.GetByLabelOptions().setExact(true)).click()
           page.getByLabel("Mot de passe", Page.GetByLabelOptions().setExact(true)).fill(password)
           page.getByLabel("Suivant - Me connecter à mon").click()
 
           contractId?.let {
+            logd("Entering contract ID")
             page.locator("[id=\"\\$it\"]").click()
           }
 
+          logd("Clicking on 'hour view'")
           page.getByLabel("Accéder à la vue HEURE").click()
+
+          logd("Waiting for the page to finish loading")
           page.waitForLoadState(LoadState.NETWORKIDLE)
         }
     }
