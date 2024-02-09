@@ -57,6 +57,7 @@ class Scraping(
   }
 
   private fun scrape(headless: Boolean) {
+    var jsonConsumptionsResult: JsonConsumptionsResult? = null
     Playwright.create().use { playwright ->
       playwright.firefox().launch(BrowserType.LaunchOptions().setHeadless(headless))
         .use { browser ->
@@ -69,7 +70,8 @@ class Scraping(
             logd("Got request to json payload")
             val response: APIResponse = route.fetch()
             val body = response.text()
-            updateJson(body)
+            logd("Got JSON: $body")
+            jsonConsumptionsResult = json.decodeFromString(body)
             route.fulfill(Route.FulfillOptions().setBody(body))
           }
           logd("Navigating to EDF website")
@@ -100,16 +102,18 @@ class Scraping(
 
     if (jsonConsumptionsResult == null || jsonConsumptionsResult?.consumptions?.sumOf { it.energyMeter.total } == 0.0) {
       throw Exception("Scraping didn't work")
+    } else {
+      logd("Scraping worked")
+      updateJson(jsonConsumptionsResult!!)
     }
   }
 
   private fun fakeScrape() {
-    updateJson(SAMPLE_DATA)
+    updateJson(json.decodeFromString(SAMPLE_DATA))
   }
 
-  private fun updateJson(jsonText: String) {
-    logd("Got JSON: $jsonText")
-    jsonConsumptionsResult = json.decodeFromString(jsonText)
+  private fun updateJson(jsonConsumptionsResult: JsonConsumptionsResult) {
+    this.jsonConsumptionsResult = jsonConsumptionsResult
   }
 
   fun start() {
