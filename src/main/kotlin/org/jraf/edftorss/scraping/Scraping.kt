@@ -36,10 +36,13 @@ import kotlinx.serialization.json.Json
 import org.jraf.edftorss.scraping.json.JsonConsumptionsResult
 import org.jraf.edftorss.util.attempt
 import org.jraf.edftorss.util.logd
+import org.jraf.edftorss.util.logw
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import kotlin.concurrent.thread
+
+private const val ATTEMPTS = 20
 
 class Scraping(
   private val storageStateFolder: String,
@@ -119,11 +122,15 @@ class Scraping(
   fun start() {
     thread {
       while (true) {
-        attempt(3) {
-          logd("Starting scraping")
+        try {
+          attempt(ATTEMPTS) {
+            logd("Starting scraping")
 //          fakeScrape()
-          scrape(headless = true)
-          logd("Scraping done")
+            scrape(headless = true)
+            logd("Scraping done")
+          }
+        } catch (e: Exception) {
+          logw(e, "Scraping failed after $ATTEMPTS attempts - giving up for today")
         }
 
         // Wait until tomorrow, at 10:30am

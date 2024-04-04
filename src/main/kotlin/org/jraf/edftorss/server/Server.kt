@@ -103,7 +103,7 @@ class Server(private val scraping: Scraping) {
         val titleFormattedDate = date.format(TITLE_DATE_FORMAT)
         val title = "Consumption for $titleFormattedDate"
         val graphUrl = scraping.jsonConsumptionsResult?.let { getGraphUrl(it, title) }.orEmpty()
-        val description = getDescription(title, graphUrl)
+        val description = getDescription(graphUrl)
         val rssText = getRss(
           selfLink = selfLink,
           date = date,
@@ -119,7 +119,7 @@ class Server(private val scraping: Scraping) {
     }
   }
 
-  private fun getDescription(title: String, graphUrl: String): String {
+  private fun getDescription(graphUrl: String): String {
     val jsonConsumptionsResult = scraping.jsonConsumptionsResult ?: return "No consumption data available"
     val energyTotal = jsonConsumptionsResult.consumptions.sumOf { it.energyMeter.total }
     val costTotal = jsonConsumptionsResult.consumptions.sumOf { it.cost.total }
@@ -135,11 +135,11 @@ class Server(private val scraping: Scraping) {
   }
 
   private fun getGraphUrl(jsonConsumptionsResult: JsonConsumptionsResult, title: String): String {
-    return URLBuilder("https://chart.googleapis.com/chart")
+    return URLBuilder("https://image-charts.com/chart")
       .apply {
         parameters.append("cht", "bvg")
         parameters.append("chtt", "$title (kWh)")
-        parameters.append("chs", "1000x300")
+        parameters.append("chs", "999x300")
         parameters.append("chxt", "x,y")
         parameters.append("chxs", "0,000000,14")
         parameters.append("chbh", "a")
