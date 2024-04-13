@@ -6,3 +6,4 @@ out
 .idea/*
 !.idea/copyright
 !.idea/codeStyles
+storage-state.json

@@ -27,7 +27,25 @@ package org.jraf.edftorss.scraping.json
 
 import kotlinx.serialization.Serializable
 
+/*
+[
+    {
+        "personExternalId": "xxx",
+        "siteExternalId": "yyy",
+        "address": "SOME ADDRESS"
+    },
+    {
+        "personExternalId": "zzz",
+        "siteExternalId": "0000",
+        "address": "SOME OTHER ADDRESS"
+    }
+]
+*/
+
 @Serializable
-data class JsonEnergyMeter(
-  val total: Double,
+data class JsonSitesResponse(
+    val personExternalId: String,
+    val siteExternalId: String,
+    val address: String,
 )
+

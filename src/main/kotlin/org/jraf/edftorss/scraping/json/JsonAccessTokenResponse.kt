@@ -27,8 +27,22 @@ package org.jraf.edftorss.scraping.json
 
 import kotlinx.serialization.Serializable
 
+/*
+{
+    "access_token": "xxxx",
+    "refresh_token": "yyyyy",
+    "scope": "b2c_services b2c_business_process",
+    "token_type": "Bearer",
+    "expires_in": 1199
+}
+*/
+
 @Serializable
-data class JsonPeriod(
-  val startTime: String,
-  val endTime: String,
+data class JsonAccessTokenResponse(
+    val access_token: String,
+    val refresh_token: String,
+    val scope: String,
+    val token_type: String,
+    val expires_in: Int,
 )
+

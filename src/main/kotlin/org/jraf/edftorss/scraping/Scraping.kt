@@ -30,27 +30,38 @@ import com.microsoft.playwright.Browser
 import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.Page
 import com.microsoft.playwright.Playwright
-import com.microsoft.playwright.Route
+import com.microsoft.playwright.impl.TargetClosedError
 import com.microsoft.playwright.options.LoadState
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
-import org.jraf.edftorss.scraping.json.JsonConsumptionsResult
+import org.jraf.edftorss.scraping.client.EdfClient
+import org.jraf.edftorss.scraping.json.JsonAccessTokenResponse
+import org.jraf.edftorss.scraping.json.JsonElectricityConsumptionsResponse
+import org.jraf.edftorss.scraping.json.JsonGasConsumptionsResponse
 import org.jraf.edftorss.util.attempt
 import org.jraf.edftorss.util.logd
 import org.jraf.edftorss.util.logw
 import java.nio.file.Paths
 import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import kotlin.concurrent.thread
 
 private const val ATTEMPTS = 20
 
+private val DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
+
 class Scraping(
   private val storageStateFolder: String,
   private val email: String,
   private val password: String,
-  private val contractId: String?,
+  private val addressRegex: String,
 ) {
-  var jsonConsumptionsResult: JsonConsumptionsResult? = null
+  var electricityConsumptions: JsonElectricityConsumptionsResponse? = null
+  var gasConsumptions: List<JsonGasConsumptionsResponse>? = null
 
   private val json: Json by lazy {
     Json {
@@ -59,23 +70,27 @@ class Scraping(
     }
   }
 
-  private fun scrape(headless: Boolean) {
-    var jsonConsumptionsResult: JsonConsumptionsResult? = null
+  private fun scrapeAccessToken(headless: Boolean): String {
+    var jsonAccessTokenResponse: JsonAccessTokenResponse? = null
     Playwright.create().use { playwright ->
       playwright.firefox().launch(BrowserType.LaunchOptions().setHeadless(headless))
         .use { browser ->
           val browserContext = browser.newContext(
-            Browser.NewContextOptions().setStorageStatePath(Paths.get(storageStateFolder, "storage-state.json"))
-          )
+            Browser.NewContextOptions()
+              .setStorageStatePath(Paths.get(storageStateFolder, "storage-state.json"))
+          ).apply {
+            setDefaultTimeout(4 * 60_000.0) // !!!
+          }
           val page = browserContext.newPage()
 
-          page.route({ url -> url.contains("consumptions/load-curve") }) { route ->
-            logd("Got request to json payload")
+          page.route({ url -> url.contains("INTERNET/access_token") }) { route ->
+            logd("Got request to access_token")
             val response: APIResponse = route.fetch()
             val body = response.text()
-            logd("Got JSON: $body")
-            jsonConsumptionsResult = json.decodeFromString(body)
-            route.fulfill(Route.FulfillOptions().setBody(body))
+            logd("Got access token: $body")
+            jsonAccessTokenResponse = json.decodeFromString(body)
+            browserContext.close()
+            browser.close()
           }
           logd("Navigating to EDF website")
           page.navigate("https://equilibre.edf.fr/comprendre")
@@ -90,33 +105,80 @@ class Scraping(
           page.getByLabel("Mot de passe", Page.GetByLabelOptions().setExact(true)).fill(password)
           page.getByLabel("Suivant - Me connecter à mon").click()
 
-          contractId?.let {
-            logd("Entering contract ID")
-            page.locator("[id=\"\\$it\"]").click()
-          }
-
-          logd("Clicking on 'hour view'")
-          page.getByLabel("Accéder à la vue HEURE").click()
-
           logd("Waiting for the page to finish loading")
-          page.waitForLoadState(LoadState.NETWORKIDLE)
+          try {
+            page.waitForLoadState(LoadState.NETWORKIDLE)
+          } catch (e: TargetClosedError) {
+            // Happens when closing the browser - if we have the access token, this is expected
+            if (jsonAccessTokenResponse == null) {
+              throw e
+            }
+          }
         }
     }
 
-    if (jsonConsumptionsResult == null || jsonConsumptionsResult?.consumptions?.sumOf { it.energyMeter.total } == 0.0) {
-      throw Exception("Scraping didn't work")
-    } else {
-      logd("Scraping worked")
-      updateJson(jsonConsumptionsResult!!)
+    if (jsonAccessTokenResponse == null) {
+      throw Exception("Scraping access token didn't work")
+    }
+    logd("Scraping access token worked")
+    return jsonAccessTokenResponse!!.access_token
+  }
+
+  private fun scrape(headless: Boolean) {
+    logd("Scraping access token")
+    val accessToken = scrapeAccessToken(headless)
+    logd("Scraped access token: $accessToken")
+    val edfClient = EdfClient(accessToken)
+    runBlocking {
+      logd("Getting sites")
+      val sites = edfClient.getSites().getOrThrow()
+      val site = sites.first { Regex(addressRegex).matches(it.address) }
+      logd("Found site: $site")
+
+      val personExtId = site.personExternalId
+      val siteExtId = site.siteExternalId
+
+      logd("Getting electricity consumption")
+      val nowTruncated = ZonedDateTime.now().toInstant()
+        .atZone(ZoneOffset.systemDefault())
+        .truncatedTo(ChronoUnit.DAYS)
+      // Yesterday at midnight, in UTC
+      val oneDayAgoAtMidnight = nowTruncated
+        .minusDays(1)
+        .withZoneSameInstant(ZoneOffset.UTC)
+
+      // Today at midnight minus one second, in UTC
+      val todayAtMidnight = nowTruncated
+        .minusSeconds(1)
+        .withZoneSameInstant(ZoneOffset.UTC)
+
+      val electricityConsumptions = edfClient.getElectricityConsumption(
+        personExtId,
+        siteExtId,
+        oneDayAgoAtMidnight.toString(),
+        todayAtMidnight.toString(),
+      ).getOrThrow()
+      logd("Got electricity consumption")
+      this@Scraping.electricityConsumptions = electricityConsumptions
+
+      logd("Getting gas consumption")
+      val nowLocal = LocalDateTime.now()
+      // One month ago, minus 3 days
+      val oneMonthAgo = nowLocal.minusMonths(1).minusDays(3)
+      val gasConsumptions = edfClient.getGasConsumption(
+        personExtId,
+        siteExtId,
+        oneMonthAgo.format(DATE_FORMATTER),
+        nowLocal.format(DATE_FORMATTER),
+      ).getOrThrow()
+      logd("Got gas consumption")
+      this@Scraping.gasConsumptions = gasConsumptions
     }
   }
 
   private fun fakeScrape() {
-    updateJson(json.decodeFromString(SAMPLE_DATA))
-  }
-
-  private fun updateJson(jsonConsumptionsResult: JsonConsumptionsResult) {
-    this.jsonConsumptionsResult = jsonConsumptionsResult
+    this.electricityConsumptions = json.decodeFromString(SAMPLE_DATA_ELECTRICITY)
+    this.gasConsumptions = json.decodeFromString(SAMPLE_DATA_GAS)
   }
 
   fun start() {
@@ -125,7 +187,8 @@ class Scraping(
         try {
           attempt(ATTEMPTS) {
             logd("Starting scraping")
-//          fakeScrape()
+//            fakeScrape()
+//            scrape(headless = false)
             scrape(headless = true)
             logd("Scraping done")
           }

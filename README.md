@@ -23,6 +23,6 @@ docker run \
 -e DEBUG='pw:api' \
 -e EDF_EMAIL=<your EDF email> \
 -e EDF_PASSWORD=<your EDF password> \
--e EDF_CONTRACT_ID=<your EDF contract, only if you have several, e.g. 11 222222222-333333333333> \
+-e EDF_ADDRESS_REGEX=<a regex to match your address, to find the corresponding contract id, e.g. '.*LECLERC.*'> \
 bodlulu/edf-to-rss
 ```

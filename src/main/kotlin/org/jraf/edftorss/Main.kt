@@ -35,7 +35,7 @@ fun main() {
     storageStateFolder = System.getenv("STORAGE_STATE_PATH") ?: "/storage-state",
     email = System.getenv("EDF_EMAIL"),
     password = System.getenv("EDF_PASSWORD"),
-    contractId = System.getenv("EDF_CONTRACT_ID"),
+    addressRegex = System.getenv("EDF_ADDRESS_REGEX"),
   )
   scraping.start()
   Server(scraping).start()

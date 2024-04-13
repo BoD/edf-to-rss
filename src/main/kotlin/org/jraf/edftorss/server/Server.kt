@@ -52,17 +52,21 @@ import io.ktor.server.util.toGMTDate
 import io.ktor.util.date.toJvmDate
 import io.ktor.utils.io.charsets.Charsets
 import org.jraf.edftorss.scraping.Scraping
-import org.jraf.edftorss.scraping.json.JsonConsumptionsResult
+import org.jraf.edftorss.scraping.json.JsonElectricityConsumptionsResponse
+import org.jraf.edftorss.scraping.json.JsonGasConsumptionsResponse
 import org.jraf.edftorss.util.logd
 import org.slf4j.event.Level
+import java.time.LocalDate
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 private const val PORT = 8080
 
-private val AXIS_HOUR_FORMAT = DateTimeFormatter.ofPattern("H'h'")
-private val TITLE_DATE_FORMAT = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")
+private val DATE_FORMAT_TITLE = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")
+private val DATE_FORMAT_ELECTRICITY_AXIS = DateTimeFormatter.ofPattern("H'h'")
+private val DATE_FORMAT_GAS_AXIS = DateTimeFormatter.ofPattern("d/M")
 
 class Server(private val scraping: Scraping) {
   fun start() {
@@ -93,24 +97,49 @@ class Server(private val scraping: Scraping) {
     }
 
     routing {
-      get("/") {
+      get("/{consumptionType}") {
         val selfLink = URLBuilder("${call.request.origin.scheme}://${call.request.host()}${call.portStr()}${call.request.uri}")
           .buildString()
-        val date: ZonedDateTime =
-          (scraping.jsonConsumptionsResult?.consumptions?.first()?.period?.startTime?.let { ZonedDateTime.parse(it) }
-            ?: ZonedDateTime.now())
-            .truncatedTo(ChronoUnit.MINUTES)
-        val titleFormattedDate = date.format(TITLE_DATE_FORMAT)
-        val title = "Consumption for $titleFormattedDate"
-        val graphUrl = scraping.jsonConsumptionsResult?.let { getGraphUrl(it, title) }.orEmpty()
-        val description = getDescription(graphUrl)
-        val rssText = getRss(
-          selfLink = selfLink,
-          date = date,
-          title = title,
-          description = description,
-          graphUrl = graphUrl,
-        )
+        val consumptionType = call.parameters["consumptionType"]
+        val rssText = when (consumptionType) {
+          "electricity" -> {
+            val date: ZonedDateTime =
+              (scraping.electricityConsumptions?.consumptions?.first()?.period?.startTime?.let { ZonedDateTime.parse(it) }
+                ?: ZonedDateTime.now())
+                .truncatedTo(ChronoUnit.MINUTES)
+            val titleFormattedDate = date.format(DATE_FORMAT_TITLE)
+            val title = "Electricity consumption for $titleFormattedDate"
+            val graphUrl = scraping.electricityConsumptions?.let { getElectricityGraphUrl(it, title) }
+            logd("electricity graphUrl: $graphUrl")
+            val description = getElectricityDescription(scraping.electricityConsumptions, graphUrl)
+            getRss(
+              selfLink = selfLink,
+              date = date,
+              title = title,
+              description = description,
+              graphUrl = graphUrl,
+            )
+          }
+
+          "gas" -> {
+            val date = (scraping.gasConsumptions?.last()?.day?.let { LocalDate.parse(it) }
+              ?: LocalDate.now())
+            val titleFormattedDate = date.format(DATE_FORMAT_TITLE)
+            val title = "Gas consumption as of $titleFormattedDate"
+            val graphUrl = scraping.gasConsumptions?.let { getGasGraphUrl(it, title) }
+            logd("gas graphUrl: $graphUrl")
+            val description = getGasDescription(scraping.gasConsumptions, graphUrl)
+            getRss(
+              selfLink = selfLink,
+              date = date.atStartOfDay(ZoneId.systemDefault()),
+              title = title,
+              description = description,
+              graphUrl = graphUrl,
+            )
+          }
+
+          else -> throw IllegalArgumentException("Unknown consumption type: $consumptionType")
+        }
         call.respondText(
           rssText,
           ContentType.Application.Rss.withCharset(Charsets.UTF_8)
@@ -119,22 +148,7 @@ class Server(private val scraping: Scraping) {
     }
   }
 
-  private fun getDescription(graphUrl: String): String {
-    val jsonConsumptionsResult = scraping.jsonConsumptionsResult ?: return "No consumption data available"
-    val energyTotal = jsonConsumptionsResult.consumptions.sumOf { it.energyMeter.total }
-    val costTotal = jsonConsumptionsResult.consumptions.sumOf { it.cost.total }
-    logd("graphUrl: $graphUrl")
-    val sumFormat = "%.${2}f"
-    return """
-      <ul>
-        <li>Energy: <b>${sumFormat.format(energyTotal)} kWh</b></li>
-        <li>Cost: <b>${sumFormat.format(costTotal)} €</b></li>
-      </ul>
-      <img src="${graphUrl.replace("&", "&amp;")}">
-      """.trimIndent()
-  }
-
-  private fun getGraphUrl(jsonConsumptionsResult: JsonConsumptionsResult, title: String): String {
+  private fun getElectricityGraphUrl(electricityConsumptions: JsonElectricityConsumptionsResponse, title: String): String {
     return URLBuilder("https://image-charts.com/chart")
       .apply {
         parameters.append("cht", "bvg")
@@ -144,18 +158,78 @@ class Server(private val scraping: Scraping) {
         parameters.append("chxs", "0,000000,14")
         parameters.append("chbh", "a")
         parameters.append("chds", "a")
-        parameters.append("chxl", "0:|" + jsonConsumptionsResult.consumptions.mapIndexed { i, consumption ->
+        parameters.append("chxl", "0:|" + electricityConsumptions.consumptions.mapIndexed { i, consumption ->
           val startTime = ZonedDateTime.parse(consumption.period.startTime)
           if (i % 2 == 1) {
             " "
           } else {
-            startTime.format(AXIS_HOUR_FORMAT)
+            startTime.format(DATE_FORMAT_ELECTRICITY_AXIS)
           }
-        }.joinToString("|"))
-        parameters.append("chd", "t:" + jsonConsumptionsResult.consumptions.joinToString(",") { it.energyMeter.total.toString() })
-        parameters.append("chco", jsonConsumptionsResult.consumptions.joinToString("|") { if (it.isOffPeakHours()) "59a0eb" else "005bbb" })
+        }.joinToString("|", postfix = "|"))
+        parameters.append(
+          "chd",
+          "t:" + electricityConsumptions.consumptions.joinToString(",") { it.energyMeter.total.toString() })
+        parameters.append(
+          "chco",
+          electricityConsumptions.consumptions.joinToString(
+            "|",
+            postfix = "|"
+          ) { if (it.isOffPeakHours()) "59a0eb" else "005bbb" })
       }
       .buildString()
+  }
+
+  private fun getElectricityDescription(electricityConsumptions: JsonElectricityConsumptionsResponse?, graphUrl: String?): String {
+    val jsonConsumptionsResult = electricityConsumptions ?: return "No electricity consumption data available"
+    val energyTotal = jsonConsumptionsResult.consumptions.sumOf { it.energyMeter.total }
+    val costTotal = jsonConsumptionsResult.consumptions.sumOf { it.cost.total }
+    val sumFormat = "%.${2}f"
+    return """
+      <ul>
+        <li>Energy: <b>${sumFormat.format(energyTotal)} kWh</b></li>
+        <li>Cost: <b>${sumFormat.format(costTotal)} €</b></li>
+      </ul>
+      <img src="${graphUrl!!.replace("&", "&amp;")}">
+      """.trimIndent()
+  }
+
+  private fun getGasGraphUrl(gasConsumption: List<JsonGasConsumptionsResponse>, title: String): String {
+    return URLBuilder("https://image-charts.com/chart")
+      .apply {
+        parameters.append("cht", "bvg")
+        parameters.append("chtt", "$title (kWh)")
+        parameters.append("chs", "999x300")
+        parameters.append("chxt", "x,y")
+        parameters.append("chxs", "0,000000,14")
+        parameters.append("chbh", "a")
+        parameters.append("chds", "a")
+        parameters.append("chxl", "0:|" + gasConsumption.mapIndexed { i, consumption ->
+          val dayDate = LocalDate.parse(consumption.day)
+          dayDate.format(DATE_FORMAT_GAS_AXIS)
+        }.joinToString("|", postfix = "|"))
+        parameters.append(
+          "chd",
+          "t:" + gasConsumption.joinToString(",") { it.consumption.energy.toString() })
+        parameters.append(
+          "chco",
+          gasConsumption.joinToString(
+            "|",
+            postfix = "|"
+          ) { "E09000" })
+      }
+      .buildString()
+  }
+
+  private fun getGasDescription(gasConsumption: List<JsonGasConsumptionsResponse>?, graphUrl: String?): String {
+    val firstConsumption = gasConsumption.orEmpty().ifEmpty { return "No gas consumption data available" }.last()
+    val sumFormat = "%.${2}f"
+    return """
+      <ul>
+        <li>Energy: <b>${sumFormat.format(firstConsumption.consumption.energy)} kWh</b></li>
+        <li>Cost: <b>${sumFormat.format(firstConsumption.consumption.cost)} €</b></li>
+      </ul>
+      <img src="${graphUrl!!.replace("&", "&amp;")}">
+      """.trimIndent()
   }
 
   private fun getRss(
@@ -163,7 +237,7 @@ class Server(private val scraping: Scraping) {
     date: ZonedDateTime,
     title: String,
     description: String,
-    graphUrl: String,
+    graphUrl: String?,
   ): String {
     val feed: SyndFeed = SyndFeedImpl()
     feed.feedType = "atom_1.0"

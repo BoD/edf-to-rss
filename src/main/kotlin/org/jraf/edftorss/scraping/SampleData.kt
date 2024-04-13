@@ -25,7 +25,7 @@
 
 package org.jraf.edftorss.scraping
 
-const val SAMPLE_DATA = """{
+const val SAMPLE_DATA_ELECTRICITY = """{
   "period": {
     "startTime": "2024-01-20T00:00:00+01:00",
     "endTime": "2024-01-20T23:59:59+01:00"
@@ -1334,3 +1334,327 @@ const val SAMPLE_DATA = """{
     }
   ]
 }"""
+
+const val SAMPLE_DATA_GAS = """
+  [
+    {
+        "day": "2024-03-14",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 1.4797344500709677,
+        "consumption": {
+            "energy": 9.433929,
+            "cost": 0.8282989662,
+            "energyM3": 0.85,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-03-15",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 2.005947910950968,
+        "consumption": {
+            "energy": 15.4272486,
+            "cost": 1.3545124270800002,
+            "energyM3": 1.39,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-03-16",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 0.8073505833909679,
+        "consumption": {
+            "energy": 1.7757984,
+            "cost": 0.15591509952000002,
+            "energyM3": 0.16,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-03-17",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 0.9827550703509678,
+        "consumption": {
+            "energy": 3.7735716,
+            "cost": 0.33131958648,
+            "energyM3": 0.34,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-03-18",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 1.4699897563509678,
+        "consumption": {
+            "energy": 9.3229416,
+            "cost": 0.81855427248,
+            "energyM3": 0.84,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-03-19",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 1.4602450626309678,
+        "consumption": {
+            "energy": 9.2119542,
+            "cost": 0.8088095787599999,
+            "energyM3": 0.83,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-03-20",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 2.152118316750968,
+        "consumption": {
+            "energy": 17.0920596,
+            "cost": 1.50068283288,
+            "energyM3": 1.54,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-03-21",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 0.6514354838709678,
+        "consumption": {
+            "energy": 0.0,
+            "cost": 0.0,
+            "energyM3": 0.0,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-03-22",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 1.0899467012709678,
+        "consumption": {
+            "energy": 4.994433,
+            "cost": 0.4385112174,
+            "energyM3": 0.45,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-03-23",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 0.6514354838709678,
+        "consumption": {
+            "energy": 0.0,
+            "cost": 0.0,
+            "energyM3": 0.0,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-03-24",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 1.211810866470968,
+        "consumption": {
+            "energy": 6.104307,
+            "cost": 0.5603753826000001,
+            "energyM3": 0.55,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-03-25",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 0.6514354838709678,
+        "consumption": {
+            "energy": 0.0,
+            "cost": 0.0,
+            "energyM3": 0.0,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-03-26",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 1.3850178029109679,
+        "consumption": {
+            "energy": 7.9910928,
+            "cost": 0.73358231904,
+            "energyM3": 0.72,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-03-27",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 1.2729427263909678,
+        "consumption": {
+            "energy": 6.7702314,
+            "cost": 0.62150724252,
+            "energyM3": 0.61,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-03-28",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 0.6514354838709678,
+        "consumption": {
+            "energy": 0.0,
+            "cost": 0.0,
+            "energyM3": 0.0,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-03-29",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 0.6514354838709678,
+        "consumption": {
+            "energy": 0.0,
+            "cost": 0.0,
+            "energyM3": 0.0,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-03-30",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 0.6514354838709678,
+        "consumption": {
+            "energy": 0.0,
+            "cost": 0.0,
+            "energyM3": 0.0,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-03-31",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 0.6514354838709678,
+        "consumption": {
+            "energy": 0.0,
+            "cost": 0.0,
+            "energyM3": 0.0,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-04-01",
+        "standingCharge": 0.6514354838709678,
+        "totalCost": 1.884261325590968,
+        "consumption": {
+            "energy": 13.4294754,
+            "cost": 1.23282584172,
+            "energyM3": 1.21,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-04-02",
+        "standingCharge": 0.67315,
+        "totalCost": 0.67315,
+        "consumption": {
+            "energy": 0.0,
+            "cost": 0.0,
+            "energyM3": 0.0,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-04-03",
+        "standingCharge": 0.67315,
+        "totalCost": 0.67315,
+        "consumption": {
+            "energy": 0.0,
+            "cost": 0.0,
+            "energyM3": 0.0,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-04-04",
+        "standingCharge": 0.67315,
+        "totalCost": 0.67315,
+        "consumption": {
+            "energy": 0.0,
+            "cost": 0.0,
+            "energyM3": 0.0,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-04-05",
+        "standingCharge": 0.67315,
+        "totalCost": 1.18432466818,
+        "consumption": {
+            "energy": 5.8823322,
+            "cost": 0.51117466818,
+            "energyM3": 0.53,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-04-06",
+        "standingCharge": 0.67315,
+        "totalCost": 0.67315,
+        "consumption": {
+            "energy": 0.0,
+            "cost": 0.0,
+            "energyM3": 0.0,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-04-07",
+        "standingCharge": 0.67315,
+        "totalCost": 1.3868655744400002,
+        "consumption": {
+            "energy": 8.2130676,
+            "cost": 0.7137155744400001,
+            "energyM3": 0.74,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-04-08",
+        "standingCharge": 0.67315,
+        "totalCost": 0.67315,
+        "consumption": {
+            "energy": 0.0,
+            "cost": 0.0,
+            "energyM3": 0.0,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-04-09",
+        "standingCharge": 0.67315,
+        "totalCost": 0.67315,
+        "consumption": {
+            "energy": 0.0,
+            "cost": 0.0,
+            "energyM3": 0.0,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-04-10",
+        "standingCharge": 0.67315,
+        "totalCost": 1.84981621732,
+        "consumption": {
+            "energy": 13.5404628,
+            "cost": 1.17666621732,
+            "energyM3": 1.22,
+            "conversionFactor": 11.09874
+        }
+    },
+    {
+        "day": "2024-04-11",
+        "standingCharge": 0.67315,
+        "totalCost": 0.67315,
+        "consumption": {
+            "energy": 0.0,
+            "cost": 0.0,
+            "energyM3": 0.0,
+            "conversionFactor": 11.09874
+        }
+    }
+]
+"""

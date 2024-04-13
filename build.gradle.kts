@@ -32,11 +32,19 @@ dependencies {
   // Serialization
   implementation(KotlinX.serialization.json)
 
-  // Ktor
+  // Ktor server
   implementation(Ktor.server.core)
   implementation(Ktor.server.cio)
   implementation(Ktor.server.statusPages)
   implementation(Ktor.server.callLogging)
+
+  // Ktor client
+  implementation(Ktor.client.core)
+  implementation(Ktor.client.contentNegotiation)
+  implementation(Ktor.client.auth)
+  implementation(Ktor.client.logging)
+  implementation(Ktor.plugins.serialization.kotlinx.json)
+  implementation(Ktor.client.okHttp)
 
   // RSS
   implementation("com.rometools:rome:_")

@@ -100,7 +100,39 @@ import kotlinx.serialization.Serializable
  */
 
 @Serializable
-data class JsonConsumptionsResult(
-  val consumptions: List<JsonConsumption>,
+data class JsonElectricityConsumptionsResponse(
+  val consumptions: List<JsonElectricityConsumption>,
 )
 
+@Serializable
+data class JsonElectricityConsumption(
+  val period: JsonElectricityConsumptionPeriod,
+  val energyMeter: JsonElectricityConsumptionEnergyMeter,
+  val cost: JsonElectricityConsumptionCost,
+  val quality: Float,
+  val errorFlags: List<String>,
+  val indexNatures: List<String>,
+  val status: String,
+  val nature: String,
+  val aggregated: Boolean,
+  val usingLoadCurve: Boolean,
+) {
+  fun isOffPeakHours() = cost.byTariffHeading.contains("HC")
+}
+
+@Serializable
+data class JsonElectricityConsumptionPeriod(
+  val startTime: String,
+  val endTime: String,
+)
+
+@Serializable
+data class JsonElectricityConsumptionCost(
+  val total: Double,
+  val byTariffHeading: Map<String, Double>,
+)
+
+@Serializable
+data class JsonElectricityConsumptionEnergyMeter(
+  val total: Double,
+)
