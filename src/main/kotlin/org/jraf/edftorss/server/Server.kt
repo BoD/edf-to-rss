@@ -56,17 +56,27 @@ import org.jraf.edftorss.scraping.json.JsonElectricityConsumptionsResponse
 import org.jraf.edftorss.scraping.json.JsonGasConsumptionsResponse
 import org.jraf.edftorss.util.logd
 import org.slf4j.event.Level
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.util.Locale
+
 
 private const val PORT = 8080
 
 private val DATE_FORMAT_TITLE = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")
 private val DATE_FORMAT_ELECTRICITY_AXIS = DateTimeFormatter.ofPattern("H'h'")
-private val DATE_FORMAT_GAS_AXIS = DateTimeFormatter.ofPattern("d/M")
+private val DATE_FORMAT_GAS_AXIS = DateTimeFormatter.ofPattern("d MMM")
+
+private val DECIMAL_FORMAT = DecimalFormat("#.##", DecimalFormatSymbols(Locale.US)).apply {
+  minimumFractionDigits = 0
+  maximumFractionDigits = 2
+}
+
 
 class Server(private val scraping: Scraping) {
   fun start() {
@@ -167,14 +177,14 @@ class Server(private val scraping: Scraping) {
           }
         }.joinToString("|", postfix = "|"))
         parameters.append(
-          "chd",
-          "t:" + electricityConsumptions.consumptions.joinToString(",") { it.energyMeter.total.toString() })
-        parameters.append(
           "chco",
           electricityConsumptions.consumptions.joinToString(
             "|",
             postfix = "|"
           ) { if (it.isOffPeakHours()) "59a0eb" else "005bbb" })
+        parameters.append(
+          "chd",
+          "t:" + electricityConsumptions.consumptions.joinToString(",") { DECIMAL_FORMAT.format(it.energyMeter.total) })
       }
       .buildString()
   }
@@ -200,22 +210,18 @@ class Server(private val scraping: Scraping) {
         parameters.append("chtt", "$title (kWh)")
         parameters.append("chs", "999x300")
         parameters.append("chxt", "x,y")
-        parameters.append("chxs", "0,000000,14")
+        parameters.append("chxs", "0,000000,12,min45")
         parameters.append("chbh", "a")
         parameters.append("chds", "a")
         parameters.append("chxl", "0:|" + gasConsumption.mapIndexed { i, consumption ->
           val dayDate = LocalDate.parse(consumption.day)
           dayDate.format(DATE_FORMAT_GAS_AXIS)
         }.joinToString("|", postfix = "|"))
+        parameters.append("chco", "E09000")
+        parameters.append("chm", "N*f*,000000,0,-1,13,,e")
         parameters.append(
           "chd",
-          "t:" + gasConsumption.joinToString(",") { it.consumption.energy.toString() })
-        parameters.append(
-          "chco",
-          gasConsumption.joinToString(
-            "|",
-            postfix = "|"
-          ) { "E09000" })
+          "t:" + gasConsumption.joinToString(",") { DECIMAL_FORMAT.format(it.consumption.energy) })
       }
       .buildString()
   }

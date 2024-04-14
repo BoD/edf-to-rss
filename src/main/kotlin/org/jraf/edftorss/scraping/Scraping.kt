@@ -30,6 +30,7 @@ import com.microsoft.playwright.Browser
 import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.Page
 import com.microsoft.playwright.Playwright
+import com.microsoft.playwright.Route
 import com.microsoft.playwright.impl.TargetClosedError
 import com.microsoft.playwright.options.LoadState
 import kotlinx.coroutines.runBlocking
@@ -89,8 +90,9 @@ class Scraping(
             val body = response.text()
             logd("Got access token: $body")
             jsonAccessTokenResponse = json.decodeFromString(body)
-            browserContext.close()
-            browser.close()
+//            browserContext.close()
+//            browser.close()
+            route.fulfill(Route.FulfillOptions().setBody(body))
           }
           logd("Navigating to EDF website")
           page.navigate("https://equilibre.edf.fr/comprendre")
@@ -188,8 +190,8 @@ class Scraping(
           attempt(ATTEMPTS) {
             logd("Starting scraping")
 //            fakeScrape()
-//            scrape(headless = false)
-            scrape(headless = true)
+            scrape(headless = false)
+//            scrape(headless = true)
             logd("Scraping done")
           }
         } catch (e: Exception) {
