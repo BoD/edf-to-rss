@@ -190,8 +190,8 @@ class Scraping(
           attempt(ATTEMPTS) {
             logd("Starting scraping")
 //            fakeScrape()
-            scrape(headless = false)
-//            scrape(headless = true)
+//            scrape(headless = false)
+            scrape(headless = true)
             logd("Scraping done")
           }
         } catch (e: Exception) {
