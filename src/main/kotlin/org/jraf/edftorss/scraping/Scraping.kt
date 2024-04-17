@@ -30,8 +30,6 @@ import com.microsoft.playwright.Browser
 import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.Page
 import com.microsoft.playwright.Playwright
-import com.microsoft.playwright.Route
-import com.microsoft.playwright.impl.TargetClosedError
 import com.microsoft.playwright.options.LoadState
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -48,6 +46,7 @@ import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
 
 private const val ATTEMPTS = 20
@@ -72,7 +71,7 @@ class Scraping(
   }
 
   private fun scrapeAccessToken(headless: Boolean): String {
-    var jsonAccessTokenResponse: JsonAccessTokenResponse? = null
+    val jsonAccessTokenResponse = AtomicReference<JsonAccessTokenResponse>()
     Playwright.create().use { playwright ->
       playwright.firefox().launch(BrowserType.LaunchOptions().setHeadless(headless))
         .use { browser ->
@@ -80,7 +79,7 @@ class Scraping(
             Browser.NewContextOptions()
               .setStorageStatePath(Paths.get(storageStateFolder, "storage-state.json"))
           ).apply {
-            setDefaultTimeout(4 * 60_000.0) // !!!
+            setDefaultTimeout(45_000.0)
           }
           val page = browserContext.newPage()
 
@@ -89,13 +88,13 @@ class Scraping(
             val response: APIResponse = route.fetch()
             val body = response.text()
             logd("Got access token: $body")
-            jsonAccessTokenResponse = json.decodeFromString(body)
-//            browserContext.close()
-//            browser.close()
-            route.fulfill(Route.FulfillOptions().setBody(body))
+            jsonAccessTokenResponse.set(json.decodeFromString(body))
+            browserContext.close()
+            browser.close()
+//            route.fulfill(Route.FulfillOptions().setBody(body))
           }
           logd("Navigating to EDF website")
-          page.navigate("https://equilibre.edf.fr/comprendre")
+          page.navigate("https://suiviconso.edf.fr/comprendre")
 
           logd("Entering email")
           page.getByLabel("E-mail").click()
@@ -110,20 +109,20 @@ class Scraping(
           logd("Waiting for the page to finish loading")
           try {
             page.waitForLoadState(LoadState.NETWORKIDLE)
-          } catch (e: TargetClosedError) {
+          } catch (t: Throwable) {
             // Happens when closing the browser - if we have the access token, this is expected
-            if (jsonAccessTokenResponse == null) {
-              throw e
+            if (jsonAccessTokenResponse.get() == null) {
+              throw t
             }
           }
         }
     }
 
-    if (jsonAccessTokenResponse == null) {
+    if (jsonAccessTokenResponse.get() == null) {
       throw Exception("Scraping access token didn't work")
     }
     logd("Scraping access token worked")
-    return jsonAccessTokenResponse!!.access_token
+    return jsonAccessTokenResponse.get().access_token
   }
 
   private fun scrape(headless: Boolean) {

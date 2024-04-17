@@ -152,7 +152,7 @@ class Server(private val scraping: Scraping) {
         }
         call.respondText(
           rssText,
-          ContentType.Application.Rss.withCharset(Charsets.UTF_8)
+          ContentType.Application.Atom.withCharset(Charsets.UTF_8)
         )
       }
     }
