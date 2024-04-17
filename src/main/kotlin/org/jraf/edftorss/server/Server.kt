@@ -59,7 +59,6 @@ import org.slf4j.event.Level
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -111,20 +110,25 @@ class Server(private val scraping: Scraping) {
         val selfLink = URLBuilder("${call.request.origin.scheme}://${call.request.host()}${call.portStr()}${call.request.uri}")
           .buildString()
         val consumptionType = call.parameters["consumptionType"]
+        val scrapingDate: ZonedDateTime = scraping.lastSuccessScrapingDate
         val rssText = when (consumptionType) {
           "electricity" -> {
-            val date: ZonedDateTime =
-              (scraping.electricityConsumptions?.consumptions?.first()?.period?.startTime?.let { ZonedDateTime.parse(it) }
-                ?: ZonedDateTime.now())
-                .truncatedTo(ChronoUnit.MINUTES)
-            val titleFormattedDate = date.format(DATE_FORMAT_TITLE)
-            val title = "Electricity consumption for $titleFormattedDate"
-            val graphUrl = scraping.electricityConsumptions?.let { getElectricityGraphUrl(it, title) }
-            logd("electricity graphUrl: $graphUrl")
-            val description = getElectricityDescription(scraping.electricityConsumptions, graphUrl)
+            val electricityConsumptions = scraping.electricityConsumptions
+            val dataDate = electricityConsumptions?.consumptions?.firstOrNull()?.period?.startTime?.let { ZonedDateTime.parse(it) }
+              ?.truncatedTo(ChronoUnit.MINUTES)
+            var title: String? = null
+            var description: String? = null
+            var graphUrl: String? = null
+            if (dataDate != null && electricityConsumptions != null) {
+              val titleFormattedDate = dataDate.format(DATE_FORMAT_TITLE)
+              title = "Electricity consumption for $titleFormattedDate"
+              graphUrl = getElectricityGraphUrl(electricityConsumptions, title)
+              logd("electricity graphUrl: $graphUrl")
+              description = getElectricityDescription(electricityConsumptions, graphUrl)
+            }
             getRss(
               selfLink = selfLink,
-              date = date,
+              date = scrapingDate,
               title = title,
               description = description,
               graphUrl = graphUrl,
@@ -132,16 +136,21 @@ class Server(private val scraping: Scraping) {
           }
 
           "gas" -> {
-            val date = (scraping.gasConsumptions?.last()?.day?.let { LocalDate.parse(it) }
-              ?: LocalDate.now())
-            val titleFormattedDate = date.format(DATE_FORMAT_TITLE)
-            val title = "Gas consumption as of $titleFormattedDate"
-            val graphUrl = scraping.gasConsumptions?.let { getGasGraphUrl(it, title) }
-            logd("gas graphUrl: $graphUrl")
-            val description = getGasDescription(scraping.gasConsumptions, graphUrl)
+            val gasConsumptions = scraping.gasConsumptions
+            val dataDate = gasConsumptions?.lastOrNull()?.day?.let { LocalDate.parse(it) }
+            var title: String? = null
+            var description: String? = null
+            var graphUrl: String? = null
+            if (dataDate != null && gasConsumptions != null) {
+              val titleFormattedDate = dataDate.format(DATE_FORMAT_TITLE)
+              title = "Gas consumption as of $titleFormattedDate"
+              graphUrl = getGasGraphUrl(gasConsumptions, title)
+              logd("gas graphUrl: $graphUrl")
+              description = getGasDescription(gasConsumptions, graphUrl)
+            }
             getRss(
               selfLink = selfLink,
-              date = date.atStartOfDay(ZoneId.systemDefault()),
+              date = scrapingDate,
               title = title,
               description = description,
               graphUrl = graphUrl,
@@ -189,17 +198,16 @@ class Server(private val scraping: Scraping) {
       .buildString()
   }
 
-  private fun getElectricityDescription(electricityConsumptions: JsonElectricityConsumptionsResponse?, graphUrl: String?): String {
-    val jsonConsumptionsResult = electricityConsumptions ?: return "No electricity consumption data available"
-    val energyTotal = jsonConsumptionsResult.consumptions.sumOf { it.energyMeter.total }
-    val costTotal = jsonConsumptionsResult.consumptions.sumOf { it.cost.total }
+  private fun getElectricityDescription(electricityConsumptions: JsonElectricityConsumptionsResponse, graphUrl: String): String {
+    val energyTotal = electricityConsumptions.consumptions.sumOf { it.energyMeter.total }
+    val costTotal = electricityConsumptions.consumptions.sumOf { it.cost.total }
     val sumFormat = "%.${2}f"
     return """
       <ul>
         <li>Energy: <b>${sumFormat.format(energyTotal)} kWh</b></li>
         <li>Cost: <b>${sumFormat.format(costTotal)} €</b></li>
       </ul>
-      <img src="${graphUrl!!.replace("&", "&amp;")}">
+      <img src="${graphUrl.replace("&", "&amp;")}">
       """.trimIndent()
   }
 
@@ -226,23 +234,23 @@ class Server(private val scraping: Scraping) {
       .buildString()
   }
 
-  private fun getGasDescription(gasConsumption: List<JsonGasConsumptionsResponse>?, graphUrl: String?): String {
-    val firstConsumption = gasConsumption.orEmpty().ifEmpty { return "No gas consumption data available" }.last()
+  private fun getGasDescription(gasConsumption: List<JsonGasConsumptionsResponse>, graphUrl: String): String {
+    val firstConsumption = gasConsumption.last()
     val sumFormat = "%.${2}f"
     return """
       <ul>
         <li>Energy: <b>${sumFormat.format(firstConsumption.consumption.energy)} kWh</b></li>
         <li>Cost: <b>${sumFormat.format(firstConsumption.consumption.cost)} €</b></li>
       </ul>
-      <img src="${graphUrl!!.replace("&", "&amp;")}">
+      <img src="${graphUrl.replace("&", "&amp;")}">
       """.trimIndent()
   }
 
   private fun getRss(
     selfLink: String,
     date: ZonedDateTime,
-    title: String,
-    description: String,
+    title: String?,
+    description: String?,
     graphUrl: String?,
   ): String {
     val feed: SyndFeed = SyndFeedImpl()
@@ -253,18 +261,20 @@ class Server(private val scraping: Scraping) {
     feed.uri = selfLink
     feed.publishedDate = date.toInstant().toGMTDate().toJvmDate()
 
-    val entry = SyndEntryImpl()
-    entry.title = title
-    entry.link = graphUrl
-    entry.uri = graphUrl
-    entry.contents = listOf(SyndContentImpl().apply {
-      type = "text/html"
-      value = description
-    })
-    entry.publishedDate = date.toInstant().toGMTDate().toJvmDate()
-    entry.author = "BoD"
+    if (title != null && description != null && graphUrl != null) {
+      val entry = SyndEntryImpl()
+      entry.title = title
+      entry.link = graphUrl
+      entry.uri = graphUrl
+      entry.contents = listOf(SyndContentImpl().apply {
+        type = "text/html"
+        value = description
+      })
+      entry.publishedDate = date.toInstant().toGMTDate().toJvmDate()
+      entry.author = "BoD"
 
-    feed.entries = listOf(entry)
+      feed.entries = listOf(entry)
+    }
 
     return SyndFeedOutput().outputString(feed)
   }

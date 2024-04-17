@@ -46,7 +46,6 @@ import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
 
 private const val ATTEMPTS = 20
@@ -62,6 +61,7 @@ class Scraping(
 ) {
   var electricityConsumptions: JsonElectricityConsumptionsResponse? = null
   var gasConsumptions: List<JsonGasConsumptionsResponse>? = null
+  var lastSuccessScrapingDate: ZonedDateTime = ZonedDateTime.now()
 
   private val json: Json by lazy {
     Json {
@@ -71,7 +71,7 @@ class Scraping(
   }
 
   private fun scrapeAccessToken(headless: Boolean): String {
-    val jsonAccessTokenResponse = AtomicReference<JsonAccessTokenResponse>()
+    var jsonAccessTokenResponse: JsonAccessTokenResponse? = null
     Playwright.create().use { playwright ->
       playwright.firefox().launch(BrowserType.LaunchOptions().setHeadless(headless))
         .use { browser ->
@@ -88,7 +88,7 @@ class Scraping(
             val response: APIResponse = route.fetch()
             val body = response.text()
             logd("Got access token: $body")
-            jsonAccessTokenResponse.set(json.decodeFromString(body))
+            jsonAccessTokenResponse = json.decodeFromString(body)
             browserContext.close()
             browser.close()
 //            route.fulfill(Route.FulfillOptions().setBody(body))
@@ -106,23 +106,25 @@ class Scraping(
           page.getByLabel("Mot de passe", Page.GetByLabelOptions().setExact(true)).fill(password)
           page.getByLabel("Suivant - Me connecter à mon").click()
 
+
           logd("Waiting for the page to finish loading")
           try {
+            page.waitForTimeout(10000.0)
             page.waitForLoadState(LoadState.NETWORKIDLE)
           } catch (t: Throwable) {
             // Happens when closing the browser - if we have the access token, this is expected
-            if (jsonAccessTokenResponse.get() == null) {
+            if (jsonAccessTokenResponse == null) {
               throw t
             }
           }
         }
     }
 
-    if (jsonAccessTokenResponse.get() == null) {
+    if (jsonAccessTokenResponse == null) {
       throw Exception("Scraping access token didn't work")
     }
     logd("Scraping access token worked")
-    return jsonAccessTokenResponse.get().access_token
+    return jsonAccessTokenResponse!!.access_token
   }
 
   private fun scrape(headless: Boolean) {
@@ -191,7 +193,8 @@ class Scraping(
 //            fakeScrape()
 //            scrape(headless = false)
             scrape(headless = true)
-            logd("Scraping done")
+            logd("Scraping success")
+            lastSuccessScrapingDate = ZonedDateTime.now()
           }
         } catch (e: Exception) {
           logw(e, "Scraping failed after $ATTEMPTS attempts - giving up for today")
