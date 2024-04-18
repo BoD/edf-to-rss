@@ -162,6 +162,10 @@ class Scraping(
         todayAtMidnight.toString(),
       ).getOrThrow()
       logd("Got electricity consumption")
+      if (electricityConsumptions.consumptions.sumOf { it.energyMeter.total } == 0.0) {
+        throw Exception("Electricity consumption is 0 - server returned bogus data")
+      }
+
       this@Scraping.electricityConsumptions = electricityConsumptions
 
       logd("Getting gas consumption")

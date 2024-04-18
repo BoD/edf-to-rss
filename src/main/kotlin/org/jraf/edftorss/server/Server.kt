@@ -221,7 +221,7 @@ class Server(private val scraping: Scraping) {
         parameters.append("chxs", "0,000000,12,min45")
         parameters.append("chbh", "a")
         parameters.append("chds", "a")
-        parameters.append("chxl", "0:|" + gasConsumption.mapIndexed { i, consumption ->
+        parameters.append("chxl", "0:|" + gasConsumption.map { consumption ->
           val dayDate = LocalDate.parse(consumption.day)
           dayDate.format(DATE_FORMAT_GAS_AXIS)
         }.joinToString("|", postfix = "|"))
