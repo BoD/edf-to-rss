@@ -155,18 +155,20 @@ class Scraping(
         .minusSeconds(1)
         .withZoneSameInstant(ZoneOffset.UTC)
 
-      val electricityConsumptions = edfClient.getElectricityConsumption(
-        personExtId,
-        siteExtId,
-        oneDayAgoAtMidnight.toString(),
-        todayAtMidnight.toString(),
-      ).getOrThrow()
-      logd("Got electricity consumption")
-      if (electricityConsumptions.consumptions.sumOf { it.energyMeter.total } == 0.0) {
-        throw Exception("Electricity consumption is 0 - server returned bogus data")
-      }
+      attempt(10) {
+        val electricityConsumptions = edfClient.getElectricityConsumption(
+          personExtId,
+          siteExtId,
+          oneDayAgoAtMidnight.toString(),
+          todayAtMidnight.toString(),
+        ).getOrThrow()
+        logd("Got electricity consumption")
+        if (electricityConsumptions.consumptions.sumOf { it.energyMeter.total } == 0.0) {
+          throw Exception("Electricity consumption is 0 - server returned bogus data")
+        }
 
-      this@Scraping.electricityConsumptions = electricityConsumptions
+        this@Scraping.electricityConsumptions = electricityConsumptions
+      }
 
       logd("Getting gas consumption")
       val nowLocal = LocalDateTime.now()

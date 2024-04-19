@@ -25,7 +25,7 @@
 
 package org.jraf.edftorss.util
 
-fun <T> attempt(times: Int, block: () -> T): T {
+inline fun <T> attempt(times: Int, block: () -> T): T {
   var attempt = 1
   while (true) {
     try {
