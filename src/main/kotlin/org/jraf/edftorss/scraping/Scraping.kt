@@ -141,6 +141,13 @@ class Scraping(
       val personExtId = site.personExternalId
       val siteExtId = site.siteExternalId
 
+      logd("Calling lastLoadCurve - whatever that does")
+      edfClient.lastLoadCurve(
+        personExtId,
+        siteExtId,
+        ZonedDateTime.now().withZoneSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS).toString()
+      ).getOrThrow()
+
       logd("Getting electricity consumption")
       val nowTruncated = ZonedDateTime.now().toInstant()
         .atZone(ZoneOffset.systemDefault())

@@ -84,6 +84,20 @@ class EdfClient(val accessToken: String) {
     }
   }
 
+  suspend fun lastLoadCurve(
+    personExtId: String,
+    siteExtId: String,
+    ts: String,
+  ): Result<Unit> {
+    return runCatching {
+      service.lastLoadCurve(
+        personExtId,
+        siteExtId,
+        ts,
+      )
+    }
+  }
+
   suspend fun getElectricityConsumption(
     personExtId: String,
     siteExtId: String,

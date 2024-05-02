@@ -30,6 +30,8 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import org.jraf.edftorss.scraping.json.JsonElectricityConsumptionsResponse
@@ -49,6 +51,17 @@ class EdfService(
       contentType(ContentType.Application.Json)
     }.body()
   }
+
+  suspend fun lastLoadCurve(personExtId: String, siteExtId: String, ts: String) {
+    return httpClient.post("$URL_BASE/v2/sites/-/last-load-curve") {
+      header("person-ext-id", personExtId)
+      header("site-ext-id", siteExtId)
+      parameter("ts", ts)
+      contentType(ContentType.Application.Json)
+      setBody("{}")
+    }.body()
+  }
+
 
   suspend fun getElectricityConsumptions(
     personExtId: String,
