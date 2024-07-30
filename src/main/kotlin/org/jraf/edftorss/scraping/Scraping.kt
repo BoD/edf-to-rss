@@ -96,6 +96,9 @@ class Scraping(
           logd("Navigating to EDF website")
           page.navigate("https://suiviconso.edf.fr/comprendre")
 
+          logd("Cookies...")
+          page.getByLabel("Refuser les cookies EDF").click()
+
           logd("Entering email")
           page.getByLabel("E-mail").click()
           page.getByLabel("E-mail").fill(email)
