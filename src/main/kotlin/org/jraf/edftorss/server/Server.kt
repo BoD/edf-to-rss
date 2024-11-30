@@ -35,11 +35,10 @@ import io.ktor.http.URLBuilder
 import io.ktor.http.withCharset
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
-import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
-import io.ktor.server.plugins.callloging.CallLogging
+import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.origin
 import io.ktor.server.request.host
 import io.ktor.server.request.httpMethod
@@ -63,7 +62,6 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
-
 
 private const val PORT = 8080
 
@@ -161,7 +159,7 @@ class Server(private val scraping: Scraping) {
         }
         call.respondText(
           rssText,
-          ContentType.Application.Atom.withCharset(Charsets.UTF_8)
+          ContentType.Application.Atom.withCharset(Charsets.UTF_8),
         )
       }
     }
@@ -177,23 +175,28 @@ class Server(private val scraping: Scraping) {
         parameters.append("chxs", "0,000000,14")
         parameters.append("chbh", "a")
         parameters.append("chds", "a")
-        parameters.append("chxl", "0:|" + electricityConsumptions.consumptions.mapIndexed { i, consumption ->
-          val startTime = ZonedDateTime.parse(consumption.period.startTime)
-          if (i % 2 == 1) {
-            " "
-          } else {
-            startTime.format(DATE_FORMAT_ELECTRICITY_AXIS)
-          }
-        }.joinToString("|", postfix = "|"))
+        parameters.append(
+          "chxl",
+          "0:|" + electricityConsumptions.consumptions.mapIndexed { i, consumption ->
+            val startTime = ZonedDateTime.parse(consumption.period.startTime)
+            if (i % 2 == 1) {
+              " "
+            } else {
+              startTime.format(DATE_FORMAT_ELECTRICITY_AXIS)
+            }
+          }.joinToString("|", postfix = "|"),
+        )
         parameters.append(
           "chco",
           electricityConsumptions.consumptions.joinToString(
             "|",
-            postfix = "|"
-          ) { if (it.isOffPeakHours()) "59a0eb" else "005bbb" })
+            postfix = "|",
+          ) { if (it.isOffPeakHours()) "59a0eb" else "005bbb" },
+        )
         parameters.append(
           "chd",
-          "t:" + electricityConsumptions.consumptions.joinToString(",") { DECIMAL_FORMAT.format(it.energyMeter.total) })
+          "t:" + electricityConsumptions.consumptions.joinToString(",") { DECIMAL_FORMAT.format(it.energyMeter.total) },
+        )
       }
       .buildString()
   }
@@ -221,15 +224,19 @@ class Server(private val scraping: Scraping) {
         parameters.append("chxs", "0,000000,12,min45")
         parameters.append("chbh", "a")
         parameters.append("chds", "a")
-        parameters.append("chxl", "0:|" + gasConsumption.map { consumption ->
-          val dayDate = LocalDate.parse(consumption.day)
-          dayDate.format(DATE_FORMAT_GAS_AXIS)
-        }.joinToString("|", postfix = "|"))
+        parameters.append(
+          "chxl",
+          "0:|" + gasConsumption.map { consumption ->
+            val dayDate = LocalDate.parse(consumption.day)
+            dayDate.format(DATE_FORMAT_GAS_AXIS)
+          }.joinToString("|", postfix = "|"),
+        )
         parameters.append("chco", "E09000")
         parameters.append("chm", "N*f*,000000,0,-1,13,,e")
         parameters.append(
           "chd",
-          "t:" + gasConsumption.joinToString(",") { DECIMAL_FORMAT.format(it.consumption.energy) })
+          "t:" + gasConsumption.joinToString(",") { DECIMAL_FORMAT.format(it.consumption.energy) },
+        )
       }
       .buildString()
   }
@@ -266,10 +273,12 @@ class Server(private val scraping: Scraping) {
       entry.title = title
       entry.link = graphUrl
       entry.uri = graphUrl
-      entry.contents = listOf(SyndContentImpl().apply {
-        type = "text/html"
-        value = description
-      })
+      entry.contents = listOf(
+        SyndContentImpl().apply {
+          type = "text/html"
+          value = description
+        },
+      )
       entry.publishedDate = date.toInstant().toGMTDate().toJvmDate()
       entry.author = "BoD"
 
