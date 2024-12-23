@@ -204,11 +204,12 @@ class Server(private val scraping: Scraping) {
   private fun getElectricityDescription(electricityConsumptions: JsonElectricityConsumptionsResponse, graphUrl: String): String {
     val energyTotal = electricityConsumptions.consumptions.sumOf { it.energyMeter.total }
     val costTotal = electricityConsumptions.consumptions.sumOf { it.cost.total }
+    val costStandingCharge = electricityConsumptions.consumptions.sumOf { it.cost.standingCharge }
     val sumFormat = "%.${2}f"
     return """
       <ul>
         <li>Energy: <b>${sumFormat.format(energyTotal)} kWh</b></li>
-        <li>Cost: <b>${sumFormat.format(costTotal)} €</b></li>
+        <li>Cost: <b>${sumFormat.format(costTotal)} €</b> (incl. subscr. <b>${sumFormat.format(costStandingCharge)} €</b>)</li>
       </ul>
       <img src="${graphUrl.replace("&", "&amp;")}">
       """.trimIndent()
@@ -247,7 +248,7 @@ class Server(private val scraping: Scraping) {
     return """
       <ul>
         <li>Energy: <b>${sumFormat.format(firstConsumption.consumption.energy)} kWh</b></li>
-        <li>Cost: <b>${sumFormat.format(firstConsumption.consumption.cost)} €</b></li>
+        <li>Cost: <b>${sumFormat.format(firstConsumption.totalCost)} €</b> (incl. subscr. <b>${sumFormat.format(firstConsumption.standingCharge)} €</b>)</li>
       </ul>
       <img src="${graphUrl.replace("&", "&amp;")}">
       """.trimIndent()

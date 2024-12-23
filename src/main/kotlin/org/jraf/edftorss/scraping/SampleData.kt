@@ -25,6 +25,7 @@
 
 package org.jraf.edftorss.scraping
 
+//language=JSON
 const val SAMPLE_DATA_ELECTRICITY = """{
   "period": {
     "startTime": "2024-01-20T00:00:00+01:00",
@@ -1335,6 +1336,7 @@ const val SAMPLE_DATA_ELECTRICITY = """{
   ]
 }"""
 
+//language=JSON
 const val SAMPLE_DATA_GAS = """
   [
     {

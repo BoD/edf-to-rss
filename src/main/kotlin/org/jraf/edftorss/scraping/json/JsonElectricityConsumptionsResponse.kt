@@ -129,6 +129,7 @@ data class JsonElectricityConsumptionPeriod(
 @Serializable
 data class JsonElectricityConsumptionCost(
   val total: Double,
+  val standingCharge: Double,
   val byTariffHeading: Map<String, Double>,
 )
 
