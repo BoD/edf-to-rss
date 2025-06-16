@@ -157,7 +157,7 @@ class Scraping(
         .atZone(ZoneOffset.systemDefault())
         .truncatedTo(ChronoUnit.DAYS)
       // Yesterday at midnight, in UTC
-      val oneDayAgoAtMidnight = nowTruncated
+      val oneDayAgoAtMidnight: ZonedDateTime = nowTruncated
         .minusDays(1)
         .withZoneSameInstant(ZoneOffset.UTC)
 
@@ -170,8 +170,8 @@ class Scraping(
         val electricityConsumptions = edfClient.getElectricityConsumption(
           personExtId,
           siteExtId,
-          oneDayAgoAtMidnight.toString(),
-          todayAtMidnight.toString(),
+          DateTimeFormatter.ISO_ZONED_DATE_TIME.format(oneDayAgoAtMidnight),
+          DateTimeFormatter.ISO_ZONED_DATE_TIME.format(todayAtMidnight),
         ).getOrThrow()
         logd("Got electricity consumption")
         if (electricityConsumptions.consumptions.sumOf { it.energyMeter.total } == 0.0) {
