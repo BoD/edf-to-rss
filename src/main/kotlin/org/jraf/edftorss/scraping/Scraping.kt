@@ -117,6 +117,19 @@ class Scraping(
             page.waitForLoadState(LoadState.NETWORKIDLE)
           } catch (t: Throwable) {
             // Happens when closing the browser - if we have the access token, this is expected
+
+            // If it's asking to send an SMS:
+            // - comment everything after page.navigate(...)
+            // - uncomment browserContext.storageState(...) below
+            // - run the app
+            // - log in
+            // - important: log out
+            // - close the browser (this will land in this catch and save the state)
+            // Then:
+            // scp storage/storage-state.json bod@server.jraf.org:/home/bod/server/edf-to-rss/storage-state
+
+            // browserContext.storageState(BrowserContext.StorageStateOptions().setPath(Paths.get(storageStateFolder, "storage-state.json")))
+
             if (jsonAccessTokenResponse == null) {
               throw t
             }
@@ -208,8 +221,8 @@ class Scraping(
           attempt(ATTEMPTS) {
             logd("Starting scraping")
 //            fakeScrape()
-//            scrape(headless = false)
-            scrape(headless = true)
+            scrape(headless = false)
+//            scrape(headless = true)
             logd("Scraping success")
             lastSuccessScrapingDate = ZonedDateTime.now()
           }
