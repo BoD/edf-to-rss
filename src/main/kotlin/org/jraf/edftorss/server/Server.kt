@@ -53,7 +53,7 @@ import io.ktor.utils.io.charsets.Charsets
 import org.jraf.edftorss.scraping.Scraping
 import org.jraf.edftorss.scraping.json.JsonElectricityConsumptionsResponse
 import org.jraf.edftorss.scraping.json.JsonGasConsumptionsResponse
-import org.jraf.edftorss.util.logd
+import org.jraf.klibnanolog.logd
 import org.slf4j.event.Level
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols

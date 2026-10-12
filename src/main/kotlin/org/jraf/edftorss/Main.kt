@@ -27,7 +27,7 @@ package org.jraf.edftorss
 
 import org.jraf.edftorss.scraping.Scraping
 import org.jraf.edftorss.server.Server
-import org.jraf.edftorss.util.logd
+import org.jraf.klibnanolog.logd
 
 fun main() {
   logd("Hello, World!")

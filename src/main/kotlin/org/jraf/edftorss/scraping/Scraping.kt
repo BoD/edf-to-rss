@@ -38,8 +38,8 @@ import org.jraf.edftorss.scraping.json.JsonAccessTokenResponse
 import org.jraf.edftorss.scraping.json.JsonElectricityConsumptionsResponse
 import org.jraf.edftorss.scraping.json.JsonGasConsumptionsResponse
 import org.jraf.edftorss.util.attempt
-import org.jraf.edftorss.util.logd
-import org.jraf.edftorss.util.logw
+import org.jraf.klibnanolog.logd
+import org.jraf.klibnanolog.logw
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.ZoneOffset
