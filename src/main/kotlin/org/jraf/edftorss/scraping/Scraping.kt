@@ -30,6 +30,7 @@ import com.microsoft.playwright.Browser
 import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.Page
 import com.microsoft.playwright.Playwright
+import com.microsoft.playwright.Tracing
 import com.microsoft.playwright.options.LoadState
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -47,6 +48,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import kotlin.concurrent.thread
+
 
 private const val ATTEMPTS = 20
 
@@ -71,15 +73,24 @@ class Scraping(
   }
 
   private fun scrapeAccessToken(headless: Boolean): String {
+    val traces = false
     var jsonAccessTokenResponse: JsonAccessTokenResponse? = null
     Playwright.create().use { playwright ->
       playwright.firefox().launch(BrowserType.LaunchOptions().setHeadless(headless))
         .use { browser ->
           val browserContext = browser.newContext(
             Browser.NewContextOptions()
-              .setStorageStatePath(Paths.get(storageStateFolder, "storage-state.json"))
+              .setStorageStatePath(Paths.get(storageStateFolder, "storage-state.json")),
           ).apply {
             setDefaultTimeout(45_000.0)
+
+            if (traces) {
+              tracing().start(
+                Tracing.StartOptions()
+                  .setScreenshots(true)
+                  .setSnapshots(true),
+              )
+            }
           }
           val page = browserContext.newPage()
 
@@ -93,23 +104,44 @@ class Scraping(
             browser.close()
 //            route.fulfill(Route.FulfillOptions().setBody(body))
           }
-          logd("Navigating to EDF website")
-          page.navigate("https://suiviconso.edf.fr/comprendre")
 
-          // 2025-03-11 - Apparently there is no Cookie banner anymore...
+          try {
+            logd("Navigating to EDF website")
+            val response = page.navigate("https://suiviconso.edf.fr/comprendre")
+            if (response != null && response.status() == 403) {
+              logd("403 from: " + response.url());
+              logd(response.headers());
+              logd(response.text());
+              error("Navigation rejected with HTTP 403");
+            }
+
+            // 2025-03-11 - Apparently there is no Cookie banner anymore...
 //          logd("Cookies...")
 //          page.getByLabel("Refuser les cookies EDF").click()
 
-          logd("Entering email")
-          page.getByLabel("E-mail").click()
-          page.getByLabel("E-mail").fill(email)
-          page.getByLabel("Suivant - étape suivante de").click()
+            logd("Entering email")
+            page.getByLabel("E-mail").click()
+            page.getByLabel("E-mail").fill(email)
 
-          logd("Entering password")
-          page.getByLabel("Mot de passe", Page.GetByLabelOptions().setExact(true)).click()
-          page.getByLabel("Mot de passe", Page.GetByLabelOptions().setExact(true)).fill(password)
-          page.getByLabel("Suivant - Me connecter à mon").click()
+            page.getByLabel("Suivant - étape suivante de").click()
 
+            logd("Entering password")
+            page.getByLabel("Mot de passe", Page.GetByLabelOptions().setExact(true)).click()
+            page.getByLabel("Mot de passe", Page.GetByLabelOptions().setExact(true)).fill(password)
+
+            page.getByLabel("Suivant - Me connecter à mon").click()
+
+          } catch (t: Throwable) {
+            logw(t, "Could not login")
+
+            if (traces) {
+              browserContext.tracing().stop(
+                Tracing.StopOptions()
+                  .setPath(Paths.get("/traces/traces-${System.currentTimeMillis()}.zip")),
+              )
+            }
+            throw t
+          }
 
           logd("Waiting for the page to finish loading")
           try {
@@ -129,6 +161,13 @@ class Scraping(
             // scp storage/storage-state.json bod@server.jraf.org:/home/bod/server/edf-to-rss/storage-state
 
             // browserContext.storageState(BrowserContext.StorageStateOptions().setPath(Paths.get(storageStateFolder, "storage-state.json")))
+
+            if (traces) {
+              browserContext.tracing().stop(
+                Tracing.StopOptions()
+                  .setPath(Paths.get("/traces/traces-${System.currentTimeMillis()}.zip")),
+              )
+            }
 
             if (jsonAccessTokenResponse == null) {
               throw t
@@ -162,7 +201,7 @@ class Scraping(
       edfClient.lastLoadCurve(
         personExtId,
         siteExtId,
-        ZonedDateTime.now().withZoneSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS).toString()
+        ZonedDateTime.now().withZoneSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS).toString(),
       ).getOrThrow()
 
       logd("Getting electricity consumption")
@@ -221,8 +260,8 @@ class Scraping(
           attempt(ATTEMPTS) {
             logd("Starting scraping")
 //            fakeScrape()
-            scrape(headless = false)
-//            scrape(headless = true)
+//            scrape(headless = false)
+            scrape(headless = true)
             logd("Scraping success")
             lastSuccessScrapingDate = ZonedDateTime.now()
           }
