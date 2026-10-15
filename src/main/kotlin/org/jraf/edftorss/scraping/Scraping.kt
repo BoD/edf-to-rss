@@ -73,7 +73,7 @@ class Scraping(
   }
 
   private fun scrapeAccessToken(headless: Boolean): String {
-    val traces = false
+    val traces = true
     var jsonAccessTokenResponse: JsonAccessTokenResponse? = null
     Playwright.create().use { playwright ->
       playwright.firefox().launch(BrowserType.LaunchOptions().setHeadless(headless))
@@ -135,10 +135,12 @@ class Scraping(
             logw(t, "Could not login")
 
             if (traces) {
-              browserContext.tracing().stop(
-                Tracing.StopOptions()
-                  .setPath(Paths.get("/traces/traces-${System.currentTimeMillis()}.zip")),
-              )
+              runCatching {
+                browserContext.tracing().stop(
+                  Tracing.StopOptions()
+                    .setPath(Paths.get("/traces/traces-${System.currentTimeMillis()}.zip")),
+                )
+              }.onFailure { logw(it, "Could not save traces") }
             }
             throw t
           }
@@ -162,14 +164,15 @@ class Scraping(
 
             // browserContext.storageState(BrowserContext.StorageStateOptions().setPath(Paths.get(storageStateFolder, "storage-state.json")))
 
-            if (traces) {
-              browserContext.tracing().stop(
-                Tracing.StopOptions()
-                  .setPath(Paths.get("/traces/traces-${System.currentTimeMillis()}.zip")),
-              )
-            }
-
             if (jsonAccessTokenResponse == null) {
+              if (traces) {
+                runCatching {
+                  browserContext.tracing().stop(
+                    Tracing.StopOptions()
+                      .setPath(Paths.get("/traces/traces-${System.currentTimeMillis()}.zip")),
+                  )
+                }.onFailure { logw(it, "Could not save traces") }
+              }
               throw t
             }
           }

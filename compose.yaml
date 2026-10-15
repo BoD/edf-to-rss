@@ -1,0 +1,69 @@
+services:
+  tailscale:
+    image: tailscale/tailscale:stable
+    hostname: edf-scraper
+    environment:
+      TS_AUTHKEY: "${TS_AUTHKEY:?Set TS_AUTHKEY}"
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+      TS_ACCEPT_DNS: "false"
+      TS_EXTRA_ARGS: >-
+        --exit-node=${HOME_EXIT_NODE_IP:?Set HOME_EXIT_NODE_IP}
+        --exit-node-allow-lan-access=true
+      TS_ENABLE_HEALTH_CHECK: "true"
+      TS_LOCAL_ADDR_PORT: "127.0.0.1:9002"
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - grafana
+    ports:
+      - "8087:8080"
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -q
+        - --spider
+        - http://127.0.0.1:9002/healthz
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    logging:
+      driver: local
+    restart: unless-stopped
+
+  scraper:
+    image: bodlulu/edf-to-rss:latest
+    network_mode: "service:tailscale"
+    depends_on:
+      tailscale:
+        condition: service_healthy
+    environment:
+      OTEL_EXPORTER_OTLP_PROTOCOL: "${OTEL_EXPORTER_OTLP_PROTOCOL:?Set OTEL_EXPORTER_OTLP_PROTOCOL}"
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:?Set OTEL_EXPORTER_OTLP_TRACES_ENDPOINT}"
+      OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: "${OTEL_EXPORTER_OTLP_LOGS_ENDPOINT:?Set OTEL_EXPORTER_OTLP_LOGS_ENDPOINT}"
+      OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:?Set OTEL_EXPORTER_OTLP_METRICS_ENDPOINT}"
+      OTEL_METRIC_EXPORT_INTERVAL: "${OTEL_METRIC_EXPORT_INTERVAL:?Set OTEL_METRIC_EXPORT_INTERVAL}"
+      TZ: "${TZ:?Set TZ}"
+      DEBUG: "pw:api"
+      EDF_EMAIL: "${EDF_EMAIL:?Set EDF_EMAIL}"
+      EDF_PASSWORD: "${EDF_PASSWORD:?Set EDF_PASSWORD}"
+      EDF_ADDRESS_REGEX: "${EDF_ADDRESS_REGEX:?Set EDF_ADDRESS_REGEX}"
+    volumes:
+      - "./playwright-browsers:/playwright-browsers"
+      - "./storage-state:/storage-state"
+      - "./traces:/traces"
+    logging:
+      driver: local
+
+networks:
+  grafana:
+    external: true
+    name: grafana_default
+
+volumes:
+  tailscale-state:

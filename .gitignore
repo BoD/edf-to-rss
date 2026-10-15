@@ -8,3 +8,6 @@ out
 !.idea/codeStyles
 storage-state.json
 versions.properties
+storage-state
+playwright-browsers
+traces
